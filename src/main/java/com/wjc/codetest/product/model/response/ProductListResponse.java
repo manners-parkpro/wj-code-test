@@ -3,6 +3,7 @@ package com.wjc.codetest.product.model.response;
 import com.wjc.codetest.product.model.domain.Product;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -27,5 +28,19 @@ public class ProductListResponse {
         this.totalPages = totalPages;
         this.totalElements = totalElements;
         this.page = number;
+    }
+
+    /**
+     * 추가
+     * Page 구조 변경 시 Controller 영향 없음
+     * 응답에 대한 규격 책임분리
+     */
+    public static ProductListResponse from(Page<Product> page) {
+        return new ProductListResponse(
+                page.getContent(),
+                page.getTotalPages(),
+                page.getTotalElements(),
+                page.getNumber()
+        );
     }
 }
