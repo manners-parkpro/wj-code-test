@@ -88,11 +88,30 @@ public class ProductService {
     }
 
     /**
-     * @param dto
+     * 문제 : 가독성 및 코드에 대한 문제
+     *      - Setter 기반 상태 변경으로 도메인의 불변식이 보장되지 않는다.
+     *      - 변경 의도가 코드에 명확히 드러나지 않고 있다.
      *
-     * 문제 : Setter는 비지니스 로직에서 사용하지 않는것이 바람직 하다.
-     * 해결 : 도메인에서 변경 / 또는 다른 생성자를 만들어 변경하는것이 바람직 하다
-     * Setter를 지양하는 이유까지 적자 !
+     * 원인 : 코드
+     *      - 도메인 상태 변경을 일반 Setter에 위임하여 책임이 서비스 계층으로 분산되어 있어, 유지보수 및 테스트에 대한 용이성이 어려워진다.
+     *
+     * 개선안
+     * <p>
+     *
+     *     @Transactional
+     *     public Product update(Long productId, UpdateProductRequest dto) {
+     *         Product product = getProductById(productId);
+     *         product.UpdateProductRequest(dto.getName(), dto.getCategory());
+     *         return productRepository.save(product);
+     *     }
+     *
+     *     1. Setter는 도메인의 상태를 무의미하게 변경할 수 있어 불변식을 깨뜨리고 책임을 서비스로 분산시키기 때문에,
+     *        상태 변경이나 수정은 도메인 계층의 명시적인 행위로만 허용하는 것이 맞다고 판단된다.
+     *        따라서, 위에 기재해둔 소스와 같이 수정이 필요하다.
+     *
+     *     2. update 이후 Entity를 반환하는건 보안상 문제가 발생할수 있고 연관관계가 많을시 예기치 못한 버그가 발생활 확률이 높다.
+     *        따라서, 별도의 ResponseDTO 생성 후 반환하는게 맞다고 판단된다.
+     * </p>
      */
     public Product update(UpdateProductRequest dto) {
         Product product = getProductById(dto.getId());
@@ -108,16 +127,30 @@ public class ProductService {
         productRepository.delete(product);
     }
 
+    /**
+     * 문제 : 가독성에 대한 문제
+     *      - 서비스 계층에서 페이징 객체(PageRequest)를 직접 생성하여 조회 로직과 페이징 정책이 강하게 결합되어 있어,
+     *        페이징/정렬 정책 변경 시 서비스 코드 수정이 반드시 되야 되고, 영향도 범위가 넓을거라 판단된다.
+     *
+     * 원인 : 코드
+     *      - Pageable과 PageRequest의 역할을 구분하지 않고 서비스 계층이 페이징 생성 책임까지 담당하고 있기 때문에,
+     *        결과적으로 재사용성 저하 및 테스트 시 Pageable 조합이 어려워진다.
+     *
+     * 개선안
+     * <p>
+     *     public Page<Product> getListByCategory(GetProductListRequest dto, Pageable pageable) {
+     *         return productRepository.findAllByCategory(dto.getCategory(), pageable);
+     *     }
+     *
+     *     1. Controller <-> Service 간 책임 경계가 명확하지 않기때문에, 명확히 구분 하여 재사용성, 테스트 용이성, 가독성을 함께 향상시킨다.
+     *
+     *     2. 페이징 조건의 생성 책임을 Controller 이동하여, Service와 Repository는 추상 타입인 Pageable만 의존하도록 변경하는 것이 맞다고 판단된다.
+     *      2-1. 로직과 페이징/정렬 정책을 분리하고, 페이징 정책 변경 시 서비스 코드 수정 없이 확장 가능하도록 구조를 개선한다.
+     * </p>
+     */
     public Page<Product> getListByCategory(GetProductListRequest dto) {
         PageRequest pageRequest = PageRequest.of(dto.getPage(), dto.getSize(), Sort.by(Sort.Direction.ASC, "category"));
         return productRepository.findAllByCategory(dto.getCategory(), pageRequest);
-    }
-
-    /**
-     * 위에 로직을 아래 로직으로 변경하면 simple
-     */
-    public Page<Product> getListByCategory(GetProductListRequest dto, Pageable pageable) {
-        return productRepository.findAllByCategory(dto.getCategory(), pageable);
     }
 
     public List<String> getUniqueCategories() {
