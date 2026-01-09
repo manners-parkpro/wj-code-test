@@ -2,6 +2,7 @@ package com.wjc.codetest.product.model.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -124,8 +125,17 @@ public class Product {
      *      따라서, 상태 변경 및 비즈니스 규칙 검증을 도메인 계층으로 한정함으로써, 도메인 모델의 책임을 명확히 하고 설계 일관성을 반드시 유지해야 한다.
      * </p>
      */
-    public void UpdateProductRequest(String category, String name) {
+    public void UpdateProductRequest(String name,String category) {
+        validate(name, category);
         this.category = category;
         this.name = name;
+    }
+
+    private void validate(String name, String category) {
+        if (!StringUtils.hasText(name)) {
+            throw new IllegalArgumentException("상품명은 필수입니다.");
+        } else if (!StringUtils.hasText(category)) {
+            throw new IllegalArgumentException("카테고리는 필수입니다.");
+        }
     }
 }
