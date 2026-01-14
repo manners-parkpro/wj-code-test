@@ -153,6 +153,22 @@ public class ProductService {
         return productRepository.findAllByCategory(dto.getCategory(), pageRequest);
     }
 
+    /**
+     * 문제 : 가독성 및 설계에 대한 문제
+     *      - 단순 문자열(List<String>)을 그대로 반환하여, 향후 카테고리 정책 변경(코드화, 정렬 기준 추가 등)에 대응하기 어렵다.
+     *      - 동일한 기능임에도 Service와 Repository간에 get/find, unique/distinct 표현이 혼재되어 있다.
+     *
+     * 원인 : 코드
+     *      - 조회 전용 로직이라는 이유로 서비스 계층에서 최소한의 추상화 및 의미 부여가 이루어지지 않고 있다.
+     *      - 계층별 네이밍 컨벤션에 대한 기준 없이 구현 세부사항(SQL 개념)이 메서드명에 그대로 노출되어 있고, 유지보수성에 있어 혼란을 일으킬수 있다고 보인다.
+     *
+     * 개선안
+     * <p>
+     *     1. 서비스 계층에서 반환 타입에 의미를 부여하거나, 별도의 ResponseDTO 규격을 만들어 반환하는것이 올바른 방법이라고 판단된다.
+     *      1-1. 추후 필요한 경우 정렬, 필터링, 정책 적용 등 후처리를 서비스 계층에서 유연하게 처리할수 있도록 확장을 고려하는것이 바람직하다고 판단된다.
+     *    2. Service와 Repository간에 Naming 패러다임을 일치 시키도록 수정한다.
+     * </p>
+     */
     public List<String> getUniqueCategories() {
         return productRepository.findDistinctCategories();
     }
